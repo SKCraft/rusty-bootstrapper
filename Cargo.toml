@@ -1,0 +1,11 @@
+[package]
+name = "rusty-bootstrapper"
+version = "0.1.0"
+authors = ["Henry Le Grys <henry@legrys.info>"]
+edition = "2018"
+
+[dependencies]
+zip = "0.5.9"
+reqwest = { version = "0.10.10", features = ["blocking", "json"] }
+serde = { version = "1.0", features = ["derive"] }
+regex = "1"
