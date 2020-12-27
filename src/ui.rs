@@ -1,15 +1,17 @@
-use iui::controls::{Button, Label, VerticalBox};
-use iui::prelude::*;
+use native_dialog::{MessageDialog, MessageType};
 
 pub fn show_dialog(message: &str) {
     eprintln!("{}", message);
 
     let ui_msg = message.split(": ").collect::<Vec<&str>>().join("\n");
+    let maybe_err = MessageDialog::new()
+        .set_type(MessageType::Error)
+        .set_title("Launcher Bootstrapper")
+        .set_text(&ui_msg)
+        .show_alert()
+        .err();
 
-    let ui = UI::init().expect("Failed to initialize UI.");
-    let mut win = Window::new(&ui, "Bootstrap",
-                              200, 100, WindowType::NoMenubar);
-
-    win.modal_err(&ui, "Launcher Bootstrapper", &ui_msg);
-    ui.quit();
+    if let Some(err) = maybe_err {
+        eprintln!("Failed to show dialog: {:?}", err);
+    }
 }
