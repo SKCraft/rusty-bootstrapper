@@ -13,6 +13,7 @@ use crate::models::UpdateMeta;
 mod launch;
 mod version_check;
 mod models;
+mod ui;
 
 trait Also: Sized {
     fn also<C>(mut self, call: C) -> Self where C: Fn(&mut Self) {
@@ -89,13 +90,12 @@ impl Bootstrapper {
         }
 
         if !self.cleanup() {
-            // TODO Show message box
-            eprintln!("Failed cleaning up!");
+            ui::show_dialog("Failed cleaning up!");
             return
         }
 
         if let Err(err) = self.launch() {
-            eprintln!("{}", err);
+            ui::show_dialog(&format!("{}", err));
         }
     }
 
@@ -141,18 +141,18 @@ impl Bootstrapper {
         let mut filepath = self.binaries_dir.clone();
         filepath.push(format!("{}.tmp", &res.version));
 
-        let mut dest = File::open(&filepath)?;
+        let mut dest = File::create(&filepath)?;
         std::io::copy(&mut src, &mut dest)?;
         std::fs::rename(&filepath, filepath.with_extension("jar"))?;
 
-        let binary = LauncherBinary::new(filepath.clone());
+        let binary = LauncherBinary::new(filepath.with_extension("jar"));
 
         Ok(vec!(binary))
     }
 
     fn launch_existing(&self, binaries: Vec<LauncherBinary>) -> Result<(), LaunchError> {
         let working = binaries.iter().find(|bin| {
-            println!("Trying {:?}...", bin.path());
+            eprintln!("Trying {:?}...", bin.path());
 
             match bin.test_jar(&self.settings.main_class) {
                 Ok(success) => success,
@@ -199,6 +199,8 @@ fn main() {
         false => std::env::home_dir().expect("No home directory!")
             .also(|p: &mut PathBuf| p.push(".examplelauncher")),
     };
+
+    eprintln!("Using base dir '{}'", base_dir.to_string_lossy());
 
     let bootstrapper = Bootstrapper {
         portable,

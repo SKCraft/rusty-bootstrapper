@@ -23,8 +23,9 @@ impl LauncherBinary {
     pub fn test_jar(&self, main_class: &str) -> ZipResult<bool> {
         let jar_file = File::open(self.path())?;
         let mut zip = ZipArchive::new(jar_file)?;
+        let class_path = main_class.replace(".", "/") + ".class";
 
-        zip.by_name(main_class).map(|e| e.is_file())
+        zip.by_name(&class_path).map(|e| e.is_file())
     }
 
     pub fn delete(&self) {
