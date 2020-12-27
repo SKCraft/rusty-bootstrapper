@@ -83,10 +83,15 @@ impl Bootstrapper {
 
     fn run(&self) {
         if !self.binaries_dir().exists() {
-            DirBuilder::new()
+            let err = DirBuilder::new()
                 .recursive(true)
                 .create(self.binaries_dir())
-                .expect("Could not create binaries dir.");
+                .err();
+
+            if err.is_some() {
+                ui::show_dialog("Failed to create binaries dir.");
+                return
+            }
         }
 
         if !self.cleanup() {
