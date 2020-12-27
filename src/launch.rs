@@ -20,21 +20,19 @@ impl LauncherBinary {
         &self.path
     }
 
-    pub fn test_jar(&self, main_class: &str) -> ZipResult<bool> {
+    pub fn test_jar(&self) -> ZipResult<bool> {
         let jar_file = File::open(self.path())?;
         let mut zip = ZipArchive::new(jar_file)?;
-        let class_path = main_class.replace(".", "/") + ".class";
 
-        zip.by_name(&class_path).map(|e| e.is_file())
+        Ok(!zip.is_empty())
     }
 
     pub fn delete(&self) {
         std::fs::remove_file(self.path()).expect("Failed to remove a launcher file.");
     }
 
-    pub fn create_launcher(&self, main_class: String, args: Vec<&str>) -> JavaLauncher {
+    pub fn create_launcher(&self, args: Vec<&str>) -> JavaLauncher {
         JavaLauncher {
-            main_class,
             args: args.into_iter().map(String::from).collect(),
             opts: vec!(),
             jar_path: self.path.clone(),
@@ -69,15 +67,13 @@ pub struct JavaLauncher {
     opts: Vec<String>,
     args: Vec<String>,
     jar_path: PathBuf,
-    main_class: String,
 }
 
 impl JavaLauncher {
     pub fn launch(&self) -> Result<(), JavaError> {
         let cmd = Command::new("java")
             .args(&self.opts)
-            .arg("-cp").arg(&self.jar_path)
-            .arg(&self.main_class)
+            .arg("-jar").arg(&self.jar_path)
             .args(&self.args)
             .status()?;
 

@@ -25,7 +25,6 @@ trait Also: Sized {
 impl<T: Sized> Also for T {}
 
 struct BootstrapSettings {
-    main_class: String,
     update_url: String,
 }
 
@@ -165,7 +164,7 @@ impl Bootstrapper {
         let working = binaries.iter().find(|bin| {
             eprintln!("Trying {:?}...", bin.path());
 
-            match bin.test_jar(&self.settings.main_class) {
+            match bin.test_jar() {
                 Ok(success) => success,
                 Err(err) => {
                     eprintln!("Error reading JAR {:?}: {:?}", bin.path(), err);
@@ -198,7 +197,7 @@ impl Bootstrapper {
             args.push(arg);
         }
 
-        let launcher = working.create_launcher(self.settings.main_class.clone(), args);
+        let launcher = working.create_launcher(args);
         launcher.launch().map_err(|e| LaunchError::LauncherExit(e))
     }
 }
@@ -220,8 +219,6 @@ fn main() {
             .also(|p: &mut PathBuf| p.push("launcher")),
         bootstrap_args: std::env::args().skip(1).collect(),
         settings: BootstrapSettings {
-            // TODO Pull these settings from a file
-            main_class: String::from("com.skcraft.launcher.Launcher"),
             update_url: String::from("http://localhost:5000/latest.json")
         }
     };
