@@ -143,14 +143,20 @@ impl Bootstrapper {
         let res: UpdateMeta = reqwest::blocking::get(&self.settings.update_url)?.json()?;
         let mut src = reqwest::blocking::get(&res.url)?;
 
+        eprintln!("Downloading launcher version {} from \"{}\"", &res.version, &res.url);
+
         let mut filepath = self.binaries_dir.clone();
         filepath.push(format!("{}.tmp", &res.version));
 
         let mut dest = File::create(&filepath)?;
         std::io::copy(&mut src, &mut dest)?;
-        std::fs::rename(&filepath, filepath.with_extension("jar"))?;
 
-        let binary = LauncherBinary::new(filepath.with_extension("jar"));
+        let target_name = filepath.with_extension("jar");
+        std::fs::rename(&filepath, &target_name)?;
+
+        eprintln!("Downloaded {:?}", target_name.file_name().unwrap());
+
+        let binary = LauncherBinary::new(target_name);
 
         Ok(vec!(binary))
     }
@@ -205,7 +211,7 @@ fn main() {
             .also(|p: &mut PathBuf| p.push(".examplelauncher")),
     };
 
-    eprintln!("Using base dir '{}'", base_dir.to_string_lossy());
+    eprintln!("Using base dir {:?}", base_dir);
 
     let bootstrapper = Bootstrapper {
         portable,
