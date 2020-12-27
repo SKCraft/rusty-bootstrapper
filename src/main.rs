@@ -219,6 +219,7 @@ fn main() {
             .also(|p: &mut PathBuf| p.push("launcher")),
         bootstrap_args: std::env::args().skip(1).collect(),
         settings: BootstrapSettings {
+            // TODO pull settings from another file at compile time
             update_url: String::from("http://localhost:5000/latest.json")
         }
     };
