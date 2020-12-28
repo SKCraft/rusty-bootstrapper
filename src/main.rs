@@ -6,9 +6,10 @@ use std::ops::Try;
 use std::option::NoneError;
 use std::path::{Path, PathBuf};
 
-use launch::LauncherBinary;
+use serde::Deserialize;
 
-use crate::models::UpdateMeta;
+use launch::LauncherBinary;
+use models::UpdateMeta;
 
 mod launch;
 mod version_check;
@@ -24,8 +25,11 @@ trait Also: Sized {
 
 impl<T: Sized> Also for T {}
 
+#[derive(Deserialize)]
 struct BootstrapSettings {
     update_url: String,
+    home_dir: String,
+    home_dir_windows: String,
 }
 
 struct Bootstrapper {
@@ -203,11 +207,19 @@ impl Bootstrapper {
 }
 
 fn main() {
+    let settings: BootstrapSettings =
+        serde_json::from_str(include_str!("settings.json")).unwrap();
+
+    let home_dir = if cfg!(windows) {
+        &settings.home_dir_windows
+    } else {
+        &settings.home_dir
+    };
     let portable = Path::new("portable.txt").exists();
     let base_dir = match portable {
         true => Path::new(".").to_owned(),
         false => std::env::home_dir().expect("No home directory!")
-            .also(|p: &mut PathBuf| p.push(".examplelauncher")),
+            .also(|p: &mut PathBuf| p.push(home_dir)),
     };
 
     eprintln!("Using base dir {:?}", base_dir);
@@ -218,10 +230,7 @@ fn main() {
         binaries_dir: base_dir.clone()
             .also(|p: &mut PathBuf| p.push("launcher")),
         bootstrap_args: std::env::args().skip(1).collect(),
-        settings: BootstrapSettings {
-            // TODO pull settings from another file at compile time
-            update_url: String::from("http://localhost:5000/latest.json")
-        }
+        settings,
     };
 
     bootstrapper.run();
