@@ -2,7 +2,6 @@
 
 use std::fmt;
 use std::fs::{DirBuilder, File};
-use std::io::Error;
 use std::ops::Try;
 use std::option::NoneError;
 use std::path::{Path, PathBuf};
@@ -177,7 +176,7 @@ impl Bootstrapper {
                     false
                 },
             }
-        }).into_result().map_err(|e| LaunchError::MissingBinaries(e))?;
+        }).into_result().map_err(LaunchError::MissingBinaries)?;
 
         binaries.iter()
             .filter(|b| &working != b)
@@ -204,7 +203,7 @@ impl Bootstrapper {
         }
 
         let launcher = working.create_launcher(args);
-        launcher.launch().map_err(|e| LaunchError::LauncherExit(e))
+        launcher.launch().map_err(LaunchError::LauncherExit)
     }
 }
 
@@ -242,7 +241,7 @@ fn main() {
     let bootstrapper = Bootstrapper {
         portable,
         base_dir: base_dir.clone(),
-        binaries_dir: base_dir.clone()
+        binaries_dir: base_dir
             .also(|p: &mut PathBuf| p.push("launcher")),
         bootstrap_args: std::env::args().skip(1).collect(),
         settings,

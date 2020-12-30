@@ -70,7 +70,7 @@ impl TryFrom<String> for JavaVersion {
     type Error = VersionFormatError;
 
     fn try_from(version_str: String) -> Result<Self, Self::Error> {
-        let parts: Vec<&str> = version_str.split(".").collect();
+        let parts: Vec<&str> = version_str.split('.').collect();
 
         match parts.len() {
             x if x < 3 => Err(VersionFormatError::NotEnoughParts),
@@ -108,7 +108,7 @@ impl JavaVersion {
                             .map_err(|e| e.into())
                     }).and_then(|version_str| {
                         version_str.try_into()
-                            .map_err(|e| CommandError::InvalidVersion(e))
+                            .map_err(CommandError::InvalidVersion)
                     })
             }
         }

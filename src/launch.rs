@@ -22,7 +22,7 @@ impl LauncherBinary {
 
     pub fn test_jar(&self) -> ZipResult<bool> {
         let jar_file = File::open(self.path())?;
-        let mut zip = ZipArchive::new(jar_file)?;
+        let zip = ZipArchive::new(jar_file)?;
 
         Ok(!zip.is_empty())
     }

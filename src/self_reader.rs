@@ -29,6 +29,6 @@ pub fn read_appended_data() -> Result<String, ReadError> {
     file.read_exact(&mut result_buf)?;
 
     let result = String::from_utf8(result_buf)
-        .map_err(|e| ReadError::EncodingError(e))?;
+        .map_err(ReadError::EncodingError)?;
     Ok(result)
 }
