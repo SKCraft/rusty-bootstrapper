@@ -2,6 +2,7 @@
 
 use std::fmt;
 use std::fs::{DirBuilder, File};
+use std::io::Error;
 use std::ops::Try;
 use std::option::NoneError;
 use std::path::{Path, PathBuf};
@@ -15,6 +16,7 @@ mod launch;
 mod version_check;
 mod models;
 mod ui;
+mod self_reader;
 
 trait Also: Sized {
     fn also<C>(mut self, call: C) -> Self where C: Fn(&mut Self) {
@@ -207,8 +209,21 @@ impl Bootstrapper {
 }
 
 fn main() {
-    let settings: BootstrapSettings =
-        serde_json::from_str(include_str!("settings.json")).unwrap();
+    let embedded_settings = match self_reader::read_appended_data() {
+        Ok(data) => data,
+        Err(err) => {
+            ui::show_dialog(&format!("Embedded data error: {:?}", err));
+            return
+        }
+    };
+
+    let settings: BootstrapSettings = match serde_json::from_str(&embedded_settings) {
+        Ok(x) => x,
+        Err(err) => {
+            ui::show_dialog(&format!("Embedded data is invalid: {}", err));
+            return
+        }
+    };
 
     let home_dir = if cfg!(windows) {
         &settings.home_dir_windows

@@ -831,6 +831,7 @@ dependencies = [
 name = "rusty-bootstrapper"
 version = "0.1.0"
 dependencies = [
+ "byteorder",
  "native-dialog",
  "regex",
  "reqwest",
