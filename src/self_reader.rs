@@ -7,6 +7,7 @@ use byteorder::{BigEndian, ReadBytesExt};
 #[derive(Debug)]
 pub enum ReadError {
     IoError(std::io::Error),
+    InvalidMagic,
     EncodingError(FromUtf8Error),
 }
 
@@ -20,7 +21,12 @@ pub fn read_appended_data() -> Result<String, ReadError> {
     let exe = std::env::current_exe()?;
     let mut file = File::open(exe)?;
 
-    let footer_pos = file.seek(SeekFrom::End(-8))?;
+    let footer_pos = file.seek(SeekFrom::End(-12))?;
+    let magic = file.read_u32::<BigEndian>()?;
+    if magic != 0xDEADBEEF {
+        return Err(ReadError::InvalidMagic)
+    }
+
     let data_pos = file.read_u64::<BigEndian>()?;
     file.seek(SeekFrom::Start(data_pos))?;
 
