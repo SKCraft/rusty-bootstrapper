@@ -54,7 +54,13 @@ Once you've edited the configuration simply run:
 
 ```sh
 cargo build --release
+python3 append_data.py target/release/rusty-bootstrapper
 ```
+
+(The `append_data.py` step is simple helper script that appends
+your settings to the end of the binary, which is picked up later by
+the bootstrapper. This will be a helpful tool rather than a Python
+script in the future.)
 
 The executable will be in `target/release/`.
 
