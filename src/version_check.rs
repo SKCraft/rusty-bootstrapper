@@ -6,37 +6,28 @@ use std::process::Command;
 use std::string::FromUtf8Error;
 
 use regex::bytes::Regex;
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 enum CommandError {
-    IoError(std::io::Error),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Invalid (non-UTF8) output from Java command")]
+    InvalidEncoding(#[from] FromUtf8Error),
+    #[error("Invalid output from Java command")]
     InvalidOutput,
+    #[error("{0}")]
     InvalidVersion(VersionFormatError),
 }
 
-impl From<std::io::Error> for CommandError {
-    fn from(err: std::io::Error) -> Self {
-        CommandError::IoError(err)
-    }
-}
-
-impl From<FromUtf8Error> for CommandError {
-    fn from(_: FromUtf8Error) -> Self {
-        CommandError::InvalidOutput
-    }
-}
-
-#[derive(Debug)]
+#[derive(Error, Debug)]
 enum VersionFormatError {
+    #[error("Not enough parts in version (should be 3)")]
     NotEnoughParts,
+    #[error("Too many parts in version (should be 3)")]
     TooManyParts,
-    InvalidNumber(ParseIntError),
-}
-
-impl From<ParseIntError> for VersionFormatError {
-    fn from(err: ParseIntError) -> Self {
-        VersionFormatError::InvalidNumber(err)
-    }
+    #[error("Invalid number in major or minor version: {0}")]
+    InvalidNumber(#[from] ParseIntError),
 }
 
 struct JavaVersion {
@@ -105,7 +96,7 @@ impl JavaVersion {
                     .map_err(|_| CommandError::InvalidOutput)
                     .and_then(|m| {
                         String::from_utf8(m.as_bytes().into())
-                            .map_err(|e| e.into())
+                            .map_err(CommandError::InvalidEncoding)
                     }).and_then(|version_str| {
                         version_str.try_into()
                             .map_err(CommandError::InvalidVersion)

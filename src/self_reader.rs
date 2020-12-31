@@ -3,18 +3,16 @@ use std::io::{Read, Seek, SeekFrom};
 use std::string::FromUtf8Error;
 
 use byteorder::{BigEndian, ReadBytesExt};
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum ReadError {
-    IoError(std::io::Error),
+    #[error("Error reading file: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Invalid magic value; your bootstrapper is missing required data!")]
     InvalidMagic,
-    EncodingError(FromUtf8Error),
-}
-
-impl From<std::io::Error> for ReadError {
-    fn from(err: std::io::Error) -> Self {
-        ReadError::IoError(err)
-    }
+    #[error("Bootstrapper data is not valid UTF-8")]
+    EncodingError(#[from] FromUtf8Error),
 }
 
 pub fn read_appended_data() -> Result<String, ReadError> {
@@ -34,7 +32,6 @@ pub fn read_appended_data() -> Result<String, ReadError> {
     result_buf.resize((footer_pos - data_pos) as usize, 0);
     file.read_exact(&mut result_buf)?;
 
-    let result = String::from_utf8(result_buf)
-        .map_err(ReadError::EncodingError)?;
+    let result = String::from_utf8(result_buf)?;
     Ok(result)
 }

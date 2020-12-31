@@ -3,7 +3,7 @@ use native_dialog::{MessageDialog, MessageType};
 pub fn show_dialog(message: &str) {
     eprintln!("{}", message);
 
-    let ui_msg = message.split(": ").collect::<Vec<&str>>().join("\n");
+    let ui_msg = message.split(": ").collect::<Vec<&str>>().join(":\n");
     let maybe_err = MessageDialog::new()
         .set_type(MessageType::Error)
         .set_title("Launcher Bootstrapper")

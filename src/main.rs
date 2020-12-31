@@ -1,12 +1,12 @@
 #![feature(try_trait)]
 
-use std::fmt;
 use std::fs::{DirBuilder, File};
 use std::ops::Try;
 use std::option::NoneError;
 use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
+use thiserror::Error;
 
 use launch::LauncherBinary;
 use models::UpdateMeta;
@@ -41,39 +41,16 @@ struct Bootstrapper {
     settings: BootstrapSettings,
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 enum LaunchError {
-    IoError(std::io::Error),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("No launcher binaries found.")]
     MissingBinaries(NoneError),
-    FailedDownload(reqwest::Error),
-    LauncherExit(launch::JavaError),
-}
-
-impl fmt::Display for LaunchError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            LaunchError::IoError(e) =>
-                write!(f, "IO error: {}", e),
-            LaunchError::MissingBinaries(_) =>
-                write!(f, "No launcher binaries found."),
-            LaunchError::FailedDownload(e) =>
-                write!(f, "Failed to download new launcher: {}", e),
-            LaunchError::LauncherExit(e) =>
-                write!(f, "Executing launcher: {}", e)
-        }
-    }
-}
-
-impl From<std::io::Error> for LaunchError {
-    fn from(err: std::io::Error) -> Self {
-        LaunchError::IoError(err)
-    }
-}
-
-impl From<reqwest::Error> for LaunchError {
-    fn from(err: reqwest::Error) -> Self {
-        LaunchError::FailedDownload(err)
-    }
+    #[error("Failed to download new launcher: {0}")]
+    FailedDownload(#[from] reqwest::Error),
+    #[error("Launcher exited unexpectedly: {0}")]
+    LauncherExit(#[from] launch::JavaError),
 }
 
 impl Bootstrapper {
@@ -211,7 +188,7 @@ fn main() {
     let embedded_settings = match self_reader::read_appended_data() {
         Ok(data) => data,
         Err(err) => {
-            ui::show_dialog(&format!("Embedded data error: {:?}", err));
+            ui::show_dialog(&format!("Embedded data error: {}", err));
             return
         }
     };

@@ -1,8 +1,8 @@
-use std::fmt;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use thiserror::Error;
 use zip::result::ZipResult;
 use zip::ZipArchive;
 
@@ -40,27 +40,14 @@ impl LauncherBinary {
     }
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum JavaError {
-    IoError(std::io::Error),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Launcher exited with non-zero status code {0}")]
     ExitCode(i32),
-}
-
-impl From<std::io::Error> for JavaError {
-    fn from(err: std::io::Error) -> Self {
-        JavaError::IoError(err)
-    }
-}
-
-impl fmt::Display for JavaError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            JavaError::IoError(err) =>
-                write!(f, "IO error: {}", err),
-            JavaError::ExitCode(code) =>
-                write!(f, "Launcher exited with non-zero status code {}", code),
-        }
-    }
+    #[error("Launcher was terminated by a signal")]
+    Signal,
 }
 
 pub struct JavaLauncher {
@@ -78,8 +65,10 @@ impl JavaLauncher {
             .status()?;
 
         if !cmd.success() {
-            let code = cmd.code().unwrap_or(1);
-            Err(JavaError::ExitCode(code))
+            match cmd.code() {
+                Some(code) => Err(JavaError::ExitCode(code)),
+                None => Err(JavaError::Signal),
+            }
         } else {
             Ok(())
         }
