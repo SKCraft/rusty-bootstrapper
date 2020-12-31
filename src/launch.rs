@@ -64,13 +64,13 @@ impl JavaLauncher {
             .args(&self.args)
             .status()?;
 
-        if !cmd.success() {
+        if cmd.success() {
+            Ok(())
+        } else {
             match cmd.code() {
                 Some(code) => Err(JavaError::ExitCode(code)),
                 None => Err(JavaError::Signal),
             }
-        } else {
-            Ok(())
         }
     }
 }

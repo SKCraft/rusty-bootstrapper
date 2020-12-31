@@ -91,8 +91,8 @@ impl Bootstrapper {
                 let entry = r.unwrap();
 
                 if entry.path().extension()
-                    .map(|ext| ext == "tmp")
-                    .unwrap_or(false) {
+                    .map_or(false, |ext| ext == "tmp")
+                {
                     if let Err(err) = std::fs::remove_file(entry.path()) {
                         eprintln!("Error deleting temporary file {:?}: {}", entry.path(), err);
                     }
@@ -113,9 +113,9 @@ impl Bootstrapper {
 
             if binaries.is_empty() {
                 let new_binaries = self.download()?;
-                self.launch_existing(new_binaries)
+                self.launch_existing(&new_binaries)
             } else {
-                self.launch_existing(binaries)
+                self.launch_existing(&binaries)
             }
         })
     }
@@ -142,7 +142,7 @@ impl Bootstrapper {
         Ok(vec!(binary))
     }
 
-    fn launch_existing(&self, binaries: Vec<LauncherBinary>) -> Result<(), LaunchError> {
+    fn launch_existing(&self, binaries: &[LauncherBinary]) -> Result<(), LaunchError> {
         let working = binaries.iter().find(|bin| {
             eprintln!("Trying {:?}...", bin.path());
 
@@ -175,7 +175,7 @@ impl Bootstrapper {
         args.push("--bootstrap-version");
         args.push("1");
 
-        for arg in self.bootstrap_args.iter() {
+        for arg in &self.bootstrap_args {
             args.push(arg);
         }
 
@@ -207,10 +207,11 @@ fn main() {
         &settings.home_dir
     };
     let portable = Path::new("portable.txt").exists();
-    let base_dir = match portable {
-        true => Path::new(".").to_owned(),
-        false => std::env::home_dir().expect("No home directory!")
-            .also(|p: &mut PathBuf| p.push(home_dir)),
+    let base_dir = if portable {
+        Path::new(".").to_owned()
+    } else {
+        std::env::home_dir().expect("No home directory!")
+            .also(|p: &mut PathBuf| p.push(home_dir))
     };
 
     eprintln!("Using base dir {:?}", base_dir);
