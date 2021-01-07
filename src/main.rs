@@ -10,12 +10,15 @@ use thiserror::Error;
 
 use launch::LauncherBinary;
 use models::UpdateMeta;
+use platform::HomeDirError;
+use self_reader::ReadError;
 
 mod launch;
 mod version_check;
 mod models;
 mod ui;
 mod self_reader;
+mod platform;
 
 trait Also: Sized {
     fn also<C>(mut self, call: C) -> Self where C: Fn(&mut Self) {
@@ -184,22 +187,19 @@ impl Bootstrapper {
     }
 }
 
-fn main() {
-    let embedded_settings = match self_reader::read_appended_data() {
-        Ok(data) => data,
-        Err(err) => {
-            ui::show_dialog(&format!("Embedded data error: {}", err));
-            return
-        }
-    };
+#[derive(Error, Debug)]
+enum BootstrapError {
+    #[error("Embedded data error: {0}")]
+    EmbeddedDataError(#[from] ReadError),
+    #[error("Embedded data is corrupted!\n {0}")]
+    EmbeddedDataCorrupt(#[from] serde_json::Error),
+    #[error("Home directory is missing: {0}")]
+    HomeDirMissing(#[from] HomeDirError),
+}
 
-    let settings: BootstrapSettings = match serde_json::from_str(&embedded_settings) {
-        Ok(x) => x,
-        Err(err) => {
-            ui::show_dialog(&format!("Embedded data is invalid: {}", err));
-            return
-        }
-    };
+fn startup() -> Result<(), BootstrapError> {
+    let embedded_settings = self_reader::read_appended_data()?;
+    let settings: BootstrapSettings = serde_json::from_str(&embedded_settings)?;
 
     let home_dir = if cfg!(windows) {
         &settings.home_dir_windows
@@ -210,8 +210,10 @@ fn main() {
     let base_dir = if portable {
         Path::new(".").to_owned()
     } else {
-        std::env::home_dir().expect("No home directory!")
-            .also(|p: &mut PathBuf| p.push(home_dir))
+        let mut base_dir = platform::home_dir()?;
+
+        base_dir.push(home_dir);
+        base_dir
     };
 
     eprintln!("Using base dir {:?}", base_dir);
@@ -226,4 +228,11 @@ fn main() {
     };
 
     bootstrapper.run();
+    Ok(())
+}
+
+fn main() {
+    if let Err(err) = startup() {
+        ui::show_dialog(&format!("{}", err));
+    }
 }

@@ -832,12 +832,15 @@ name = "rusty-bootstrapper"
 version = "0.1.0"
 dependencies = [
  "byteorder",
+ "libc",
  "native-dialog",
+ "objc",
  "regex",
  "reqwest",
  "serde",
  "serde_json",
  "thiserror",
+ "winapi 0.3.9",
  "zip",
 ]
 
