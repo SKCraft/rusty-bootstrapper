@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 use std::convert::{TryFrom, TryInto};
+use std::fmt;
 use std::num::ParseIntError;
 use std::ops::Try;
 use std::process::Command;
@@ -9,7 +10,7 @@ use regex::bytes::Regex;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-enum CommandError {
+pub enum CommandError {
     #[error("IO error: {0}")]
     IoError(#[from] std::io::Error),
     #[error("Invalid (non-UTF8) output from Java command")]
@@ -21,7 +22,7 @@ enum CommandError {
 }
 
 #[derive(Error, Debug)]
-enum VersionFormatError {
+pub enum VersionFormatError {
     #[error("Not enough parts in version (should be 3)")]
     NotEnoughParts,
     #[error("Too many parts in version (should be 3)")]
@@ -57,6 +58,12 @@ impl PartialEq for JavaVersion {
 
 impl Eq for JavaVersion {}
 
+impl fmt::Display for JavaVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("{}.{}", self.major, self.minor))
+    }
+}
+
 impl TryFrom<String> for JavaVersion {
     type Error = VersionFormatError;
 
@@ -88,7 +95,7 @@ impl JavaVersion {
     pub fn system_java_version() -> Result<JavaVersion, CommandError> {
         let output = Command::new("java").arg("-version").output()?;
 
-        let pattern = Regex::new(r#"version\s"(\d+)""#).unwrap();
+        let pattern = Regex::new(r#"version\s"([0-9._-]+)""#).unwrap();
         match pattern.captures(&output.stderr) {
             None => Err(CommandError::InvalidOutput),
             Some(captures) => {
@@ -104,5 +111,14 @@ impl JavaVersion {
             }
         }
     }
+}
+
+pub fn check_java_version() -> Result<bool, CommandError> {
+    let desired = JavaVersion::new(1, 8);
+    let available = JavaVersion::system_java_version()?;
+
+    eprintln!("Found Java version {}", available);
+
+    return Ok(available >= desired)
 }
 

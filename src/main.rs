@@ -45,6 +45,8 @@ enum LaunchError {
     FailedDownload(#[from] reqwest::Error),
     #[error("Launcher exited unexpectedly: {0}")]
     LauncherExit(#[from] launch::JavaError),
+    #[error("Invalid Java version: {0}")]
+    InvalidJava(String),
 }
 
 impl Bootstrapper {
@@ -96,6 +98,20 @@ impl Bootstrapper {
     }
 
     fn launch(&self) -> Result<(), LaunchError> {
+        match version_check::check_java_version() {
+            Ok(valid) => {
+                if !valid {
+                    // TODO Report the Java version that was incorrect
+                    return Err(LaunchError::InvalidJava("Need at least Java 8".into()))
+                }
+            }
+            Err(err) => {
+                eprintln!("Couldn't check Java version: {}", err);
+                // just continue, failed to check version.
+                // if we fail later that will be reported.
+            }
+        }
+
         std::fs::read_dir(self.binaries_dir()).map_err(|e| {
             LaunchError::IoError(e)
         }).and_then(|dir| {
