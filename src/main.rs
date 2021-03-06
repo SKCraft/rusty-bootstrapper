@@ -82,9 +82,9 @@ impl Bootstrapper {
     }
 
     fn cleanup(&self) -> bool {
-        std::fs::read_dir(self.binaries_dir()).map(|dir| {
-            dir.for_each(|r| {
-                let entry = r.unwrap();
+        std::fs::read_dir(self.binaries_dir()).and_then(|dir| {
+            for r in dir {
+                let entry = r?;
 
                 if entry.path().extension()
                     .map_or(false, |ext| ext == "tmp")
@@ -93,7 +93,9 @@ impl Bootstrapper {
                         eprintln!("Error deleting temporary file {:?}: {}", entry.path(), err);
                     }
                 }
-            });
+            }
+
+            Ok(())
         }).is_ok()
     }
 
@@ -116,10 +118,10 @@ impl Bootstrapper {
             LaunchError::IoError(e)
         }).and_then(|dir| {
             let binaries: Vec<LauncherBinary> = dir.map(|r| {
-                let entry = r.unwrap();
+                let entry = r?;
 
-                LauncherBinary::new(entry.path())
-            }).collect();
+                Ok(LauncherBinary::new(entry.path()))
+            }).collect::<Result<Vec<LauncherBinary>, std::io::Error>>()?;
 
             if binaries.is_empty() {
                 let new_binaries = self.download()?;
@@ -166,9 +168,9 @@ impl Bootstrapper {
 
         binaries.iter()
             .filter(|b| &working != b)
-            .for_each(|b| {
-                b.delete();
-        });
+            .try_for_each(|b| {
+                b.delete()
+        })?;
 
         let mut args = Vec::new();
 

@@ -27,8 +27,8 @@ impl LauncherBinary {
         Ok(!zip.is_empty())
     }
 
-    pub fn delete(&self) {
-        std::fs::remove_file(self.path()).expect("Failed to remove a launcher file.");
+    pub fn delete(&self) -> std::io::Result<()> {
+        std::fs::remove_file(self.path())
     }
 
     pub fn create_launcher(&self, args: Vec<&str>) -> JavaLauncher {
