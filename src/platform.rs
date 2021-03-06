@@ -1,5 +1,3 @@
-use std::ffi::{CStr, OsStr, OsString};
-use std::os::raw::c_char;
 use std::path::PathBuf;
 
 use thiserror::Error;
@@ -10,12 +8,14 @@ pub enum HomeDirError {
     NoPath,
     #[error("Home directory is not present")]
     NotPresent,
-    #[error("Unknown error")]
+    #[error("Unknown problem while getting home directory")]
     Unknown,
 }
 
 #[cfg(target_os = "windows")]
 pub fn home_dir() -> Result<PathBuf, HomeDirError> {
+    use std::ffi::OsString;
+    use std::os::raw::c_char;
     use std::os::windows::ffi::OsStringExt;
     use std::os::windows::ffi::CStrExt;
     use winapi::_core::ptr::{null, null_mut};
@@ -49,6 +49,7 @@ pub fn home_dir() -> Result<PathBuf, HomeDirError> {
 
 #[cfg(target_os = "linux")]
 pub fn home_dir() -> Result<PathBuf, HomeDirError> {
+    use std::ffi::{CStr, OsStr};
     use std::os::unix::ffi::OsStrExt;
 
     if let Some(path) = std::env::var_os("HOME") {
@@ -71,6 +72,7 @@ pub fn home_dir() -> Result<PathBuf, HomeDirError> {
 
 #[cfg(target_os = "macos")]
 pub fn home_dir() -> Result<PathBuf, HomeDirError> {
+    use std::ffi::{CStr, OsStr};
     use objc::{class, msg_send};
     use objc::runtime::Object;
 

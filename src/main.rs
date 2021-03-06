@@ -20,15 +20,6 @@ mod ui;
 mod self_reader;
 mod platform;
 
-trait Also: Sized {
-    fn also<C>(mut self, call: C) -> Self where C: Fn(&mut Self) {
-        call(&mut self);
-        self
-    }
-}
-
-impl<T: Sized> Also for T {}
-
 #[derive(Deserialize)]
 struct BootstrapSettings {
     update_url: String,
@@ -129,8 +120,7 @@ impl Bootstrapper {
 
         eprintln!("Downloading launcher version {} from \"{}\"", &res.version, &res.url);
 
-        let mut filepath = self.binaries_dir.clone();
-        filepath.push(format!("{}.tmp", &res.version));
+        let filepath = self.binaries_dir().join(format!("{}.tmp", &res.version));
 
         let mut dest = File::create(&filepath)?;
         std::io::copy(&mut src, &mut dest)?;
@@ -208,21 +198,17 @@ fn startup() -> Result<(), BootstrapError> {
     };
     let portable = Path::new("portable.txt").exists();
     let base_dir = if portable {
-        Path::new(".").to_owned()
+        PathBuf::from(".")
     } else {
-        let mut base_dir = platform::home_dir()?;
-
-        base_dir.push(home_dir);
-        base_dir
+        platform::home_dir()?.join(home_dir)
     };
 
     eprintln!("Using base dir {:?}", base_dir);
 
     let bootstrapper = Bootstrapper {
         portable,
-        base_dir: base_dir.clone(),
-        binaries_dir: base_dir
-            .also(|p: &mut PathBuf| p.push("launcher")),
+        binaries_dir: base_dir.join("launcher"),
+        base_dir,
         bootstrap_args: std::env::args().skip(1).collect(),
         settings,
     };
