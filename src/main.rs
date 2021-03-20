@@ -5,12 +5,12 @@ use std::ops::Try;
 use std::option::NoneError;
 use std::path::{Path, PathBuf};
 
+use directories::ProjectDirs;
 use serde::Deserialize;
 use thiserror::Error;
 
 use launch::LauncherBinary;
 use models::UpdateMeta;
-use platform::HomeDirError;
 use self_reader::ReadError;
 
 mod launch;
@@ -18,13 +18,12 @@ mod version_check;
 mod models;
 mod ui;
 mod self_reader;
-mod platform;
 
 #[derive(Deserialize)]
 struct BootstrapSettings {
     update_url: String,
-    home_dir: String,
-    home_dir_windows: String,
+    app_name: String,
+    org_name: String,
 }
 
 struct Bootstrapper {
@@ -201,24 +200,22 @@ enum BootstrapError {
     EmbeddedDataError(#[from] ReadError),
     #[error("Embedded data is corrupted!\n {0}")]
     EmbeddedDataCorrupt(#[from] serde_json::Error),
-    #[error("Home directory is missing: {0}")]
-    HomeDirMissing(#[from] HomeDirError),
+    #[error("Unable to retrieve project location directory")]
+    HomeDirMissing,
 }
 
 fn startup() -> Result<(), BootstrapError> {
     let embedded_settings = self_reader::read_appended_data()?;
     let settings: BootstrapSettings = serde_json::from_str(&embedded_settings)?;
 
-    let home_dir = if cfg!(windows) {
-        &settings.home_dir_windows
-    } else {
-        &settings.home_dir
-    };
     let portable = Path::new("portable.txt").exists();
     let base_dir = if portable {
         PathBuf::from(".")
     } else {
-        platform::home_dir()?.join(home_dir)
+        let project_dirs = ProjectDirs::from("", &settings.org_name, &settings.app_name)
+            .into_result().map_err(|_e| BootstrapError::HomeDirMissing)?;
+
+        project_dirs.data_dir().to_owned()
     };
 
     eprintln!("Using base dir {:?}", base_dir);

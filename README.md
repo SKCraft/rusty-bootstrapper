@@ -5,6 +5,10 @@ An alternative, Rust-based bootstrapper for the SKCraft launcher.
 Currently in development. It does work but I don't recommend you
 distribute this to your users.
 
+**Note: This bootstrapper is not a direct drop-in replacement for
+the original bootstrapper.** It works differently & it uses different
+data directory locations.
+
 ## why?
 
 The problem with the Java bootstrapper is that it can silently fail
@@ -33,11 +37,14 @@ The default config file lives at `src/settings.json`. You need to edit
 this file:
 
 - `update_url` should be a HTTP URL that returns an update JSON.
-- `home_dir` is the name of the launcher directory on
-non-Windows platforms, it should start with a dot to be automatically
-hidden.
-- `home_dir_windows` same as above, but for Windows; does not need
-to start with a dot.
+- `org_name` should be the name of your organization, e.g. "My Company"
+- `app_name` should be the name of the app, e.g. "My Company Launcher"
+
+| Platform | Launcher Data Location |
+| -------- | ----------------- |
+| Windows  | `%APPDATA%/My Company/My Company Launcher/data` |
+| Mac      | `$HOME/Library/Application Support/My-Company/My-Company-Launcher` |
+| Linux    | `$XDG_DATA_HOME/mycompanylauncher` |
 
 The update JSON returned from `update_url` should look like:
 
@@ -47,8 +54,6 @@ The update JSON returned from `update_url` should look like:
   "version": "4.0.0"
 }
 ```
-
-Right now this jar file **cannot** be packed with pack200.
 
 Once you've edited the configuration simply run:
 

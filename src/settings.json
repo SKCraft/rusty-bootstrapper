@@ -1,5 +1,5 @@
 {
   "update_url": "http://localhost:5000/latest.json",
-  "home_dir": ".examplelauncher",
-  "home_dir_windows": "Example Launcher"
+  "org_name": "SKCraft",
+  "app_name": "SKCraft Launcher"
 }
