@@ -43,7 +43,7 @@ this file:
 | Platform | Launcher Data Location |
 | -------- | ----------------- |
 | Windows  | `%APPDATA%/My Company/My Company Launcher/data` |
-| Mac      | `$HOME/Library/Application Support/My-Company/My-Company-Launcher` |
+| Mac      | `$HOME/Library/Application Support/My-Company.My-Company-Launcher` |
 | Linux    | `$XDG_DATA_HOME/mycompanylauncher` |
 
 The update JSON returned from `update_url` should look like:
